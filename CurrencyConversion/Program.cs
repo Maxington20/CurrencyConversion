@@ -88,7 +88,7 @@ namespace CurrencyConversion
 
                 while (!dateValid)
                 {
-                    Console.WriteLine("Please enter a date in this format (yyyy-mm-dd), or enter for most recent rate available:");
+                    Console.WriteLine("Please enter a past date in this format (yyyy-mm-dd), or hit ENTER for most recent rate available:");
 
                     var inputDate = Console.ReadLine();
 
