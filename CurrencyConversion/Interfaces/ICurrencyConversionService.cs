@@ -9,10 +9,8 @@ namespace CurrencyConversion.Interfaces
 {
     public interface ICurrencyConversionService
     {
-        Task<Currency> GetBOCRate(string code,string toFrom, string date = null);
+        Task<Currency> GetBOCRateAsync(string code,string toFrom, DateTime? date);
 
-        Currency CreateCurrencyObject(string jsonResponse, string codeInOrder);
-
-        Task<string> BuildReponse(Currency currency);
+        public string BuildReponse(Currency currency, decimal amount, string toFromCad, string inputtedCurrency);
     }
 }
