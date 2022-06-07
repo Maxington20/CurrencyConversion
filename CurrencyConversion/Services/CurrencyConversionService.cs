@@ -14,44 +14,22 @@ namespace CurrencyConversion.Services
     {
         public const string baseUri = "https://www.bankofcanada.ca/valet/";        
 
-        HttpClient client = new HttpClient();
-
-        public Task <string> BuildReponse(Currency currency)
-        {            
-            if (String.IsNullOrEmpty(currency.Description))
-            {
-                throw new ArgumentNullException("description");
-            }   
-            
-            if (String.IsNullOrEmpty(currency.Rate))
-            {
-                throw new ArgumentNullException("rate");
-            }
-            
-            string response = ($"{currency.Description} on {currency.Date} was {currency.Rate}");
-
-            return Task.FromResult(response);
-        }
-
-        public Currency CreateCurrencyObject(string jsonResponse, string codeInOrder)
+        public string BuildReponse(Currency currency, decimal amount, string toFromCad, string inputtedCurrency)
         {
-            dynamic record = JsonConvert.DeserializeObject<dynamic>(jsonResponse);
+            string newAmount = amount.ToString("0.0000");
 
-            var description = record["seriesDetail"][codeInOrder]["description"];
-            var rDate = record["observations"][0]["d"];
-            var rate = record["observations"][0][codeInOrder]["v"];
+            string convertedAmount = CalculateConvertedAmount(amount, currency.Rate);
 
-            Currency currency = new Currency
-            {
-                Description = description,
-                Rate = rate,
-                Date = rDate,
-            };
+            string begginingCurrency = toFromCad.ToLower() == "from" ? "CAD" : inputtedCurrency;
+            string endingCurrency = toFromCad.ToLower() == "from" ? inputtedCurrency : "CAD";
 
-            return currency;
+            string response = ($"{currency.Description} on {currency.Date} = {currency.Rate}.\n" +
+                $"Converted amount: {newAmount} {begginingCurrency} = {convertedAmount} {endingCurrency}");
+
+            return response;
         }
-
-        public async Task <Currency> GetBOCRate(string code, string toFrom, string date = null)
+      
+        public async Task <Currency> GetBOCRateAsync(string code, string toFrom, DateTime? date)
         {
             string uri;
             string codeInOrder = "FX";
@@ -72,15 +50,60 @@ namespace CurrencyConversion.Services
             }
             else
             {
+                var convertedDate = date?.ToString("yyyy'-'MM'-'dd");
+
                 // if users pick specific date, just get the result for that one day
-                uri = baseUri + "observations/" + codeInOrder + "?start_date=" + date + "&end_date=" + date;
+                uri = baseUri + "observations/" + codeInOrder + "?start_date=" + convertedDate + "&end_date=" + convertedDate;
             }
 
-            var response = await client.GetStringAsync(uri);
+            var response = "";
+
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    response = await client.GetStringAsync(uri);
+                }                
+            }
+            catch (HttpRequestException e)
+            {
+                Console.WriteLine($"Having the following issue communicating with the Bank of Canada API: {e.Message}");
+            }            
 
             var currency = CreateCurrencyObject(response, codeInOrder);
 
             return currency;
-        }       
+        }
+
+        private Currency CreateCurrencyObject(string jsonResponse, string codeInOrder)
+        {
+            Currency currency = new Currency();
+            try
+            {
+                dynamic record = JsonConvert.DeserializeObject<dynamic>(jsonResponse);
+
+                var description = record["seriesDetail"][codeInOrder]["description"];
+                var rDate = record["observations"][0]["d"];
+                var rate = record["observations"][0][codeInOrder]["v"];
+
+                currency.Description = description;
+                currency.Rate = Convert.ToDecimal(rate);
+                currency.Date = rDate;
+            }
+            catch(ArgumentOutOfRangeException)
+            {
+                Console.WriteLine("The Bank of Canada API has no records for the day selected");
+            }
+            catch(Exception)
+            {
+                Console.WriteLine($"Mistakes were made.....");
+            }
+            return currency;
+        }
+
+        private string CalculateConvertedAmount(decimal amount, decimal rate)
+        {
+            return (amount * rate).ToString("0.0000");
+        }
     }
 }
