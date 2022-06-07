@@ -14,10 +14,11 @@ namespace CurrencyConversion.Utility
             TO,
             FROM,
         }
-
+                
         public static bool IsDateValid(DateTime date)
         {
-            DateTime minDate = DateTime.Parse("2017-01-01");          
+            // Played with postman, I believe this is the oldest record the api has data for
+            DateTime minDate = DateTime.Parse("2017-01-03");          
 
             if (date >= DateTime.Now.AddDays(1))
             {

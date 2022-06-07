@@ -8,6 +8,7 @@ namespace CurrencyConversion.Utility
 {
     public class CurrencyCodes
     {
+        // Used an enum. Easy to extend this app to include more currencies
         public enum IncludedCurrencyCodes
         {
             USD,

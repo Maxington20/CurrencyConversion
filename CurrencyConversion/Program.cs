@@ -18,7 +18,7 @@ namespace CurrencyConversion
                     "and an amount, and will give you the proper exhcnage rate. Enter 0 at any time to exit.\n");
 
             while (!quit)
-            {
+            {                
                 ICurrencyConversionService converter = new CurrencyConversionService();
 
                 List<string> codes = CurrencyCodes.BuildCodeList();

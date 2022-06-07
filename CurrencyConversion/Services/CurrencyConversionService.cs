@@ -12,6 +12,7 @@ namespace CurrencyConversion.Services
 {
     public class CurrencyConversionService : ICurrencyConversionService
     {
+        // base uri for the BOC Valey API
         public const string baseUri = "https://www.bankofcanada.ca/valet/";        
 
         public string BuildReponse(Currency currency, decimal amount, string toFromCad, string inputtedCurrency)
@@ -34,6 +35,7 @@ namespace CurrencyConversion.Services
             string uri;
             string codeInOrder = "FX";
 
+            // order of currency code determines whether rate is to or from canadian
             if(toFrom == "from")
             {
                 codeInOrder = ($"{codeInOrder}CAD{code}");
@@ -67,6 +69,7 @@ namespace CurrencyConversion.Services
             }
             catch (HttpRequestException e)
             {
+                // api is open, but things can still go awry 
                 Console.WriteLine($"Having the following issue communicating with the Bank of Canada API: {e.Message}");
             }            
 
@@ -74,12 +77,14 @@ namespace CurrencyConversion.Services
 
             return currency;
         }
-
+        
         private Currency CreateCurrencyObject(string jsonResponse, string codeInOrder)
         {
+            // use the response from BOC to build the currency object
             Currency currency = new Currency();
             try
             {
+                // response keys differ depending on currency selected, and order, so using dynamic
                 dynamic record = JsonConvert.DeserializeObject<dynamic>(jsonResponse);
 
                 var description = record["seriesDetail"][codeInOrder]["description"];
@@ -90,6 +95,7 @@ namespace CurrencyConversion.Services
                 currency.Rate = Convert.ToDecimal(rate);
                 currency.Date = rDate;
             }
+            // if observations is empty, it means that there was no data on the date selected
             catch(ArgumentOutOfRangeException)
             {
                 Console.WriteLine("The Bank of Canada API has no records for the day selected");
@@ -103,6 +109,7 @@ namespace CurrencyConversion.Services
 
         private string CalculateConvertedAmount(decimal amount, decimal rate)
         {
+            // calculate the amount and set the decimal places to 4 spaces
             return (amount * rate).ToString("0.0000");
         }
     }
