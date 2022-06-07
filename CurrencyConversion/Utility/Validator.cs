@@ -8,7 +8,13 @@ using static CurrencyConversion.Utility.CurrencyCodes;
 namespace CurrencyConversion.Utility
 {
     public class Validator
-    {        
+    { 
+        public enum ToFrom
+        {
+            TO,
+            FROM,
+        }
+
         public static bool IsDateValid(DateTime date)
         {
             DateTime minDate = DateTime.Parse("2017-01-01");          
@@ -31,7 +37,7 @@ namespace CurrencyConversion.Utility
             // create empty list to store the codes
             List<string> acceptedCurrencyCodes = CurrencyCodes.BuildCodeList();        
 
-            if (string.IsNullOrEmpty(code))
+            if (string.IsNullOrWhiteSpace(code))
             {
                 return false;
             }
@@ -41,6 +47,30 @@ namespace CurrencyConversion.Utility
                 return false;
             }
 
+            return true;
+        }
+
+        public static bool IsToFromInputValid(string toFrom)
+        {
+            if (string.IsNullOrWhiteSpace(toFrom))
+            {
+                return false;
+            }
+
+            if (!Enum.IsDefined(typeof(ToFrom), toFrom.ToUpper()))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        public static bool IsAmountValid(decimal amount)
+        {
+            if(amount < 0)
+            {
+                return false;
+            }   
             return true;
         }
     }

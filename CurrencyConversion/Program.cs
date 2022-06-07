@@ -4,6 +4,7 @@ using CurrencyConversion.Services;
 using CurrencyConversion.Models;
 using System.Threading.Tasks;
 using CurrencyConversion.Utility;
+using CurrencyConversion.Interfaces;
 
 namespace CurrencyConversion
 {
@@ -12,13 +13,13 @@ namespace CurrencyConversion
         static async Task Main(string[] args)
         {
             bool quit = false;
-
-            Console.WriteLine("This console application will take a currency code, an optional date, and whether you want to convert to or from CAD, " +
-                    "and will give you the proper exhcnage rate. Enter 0 at any time to exit.\n");
+           
+            Console.WriteLine("This console application will take a currency code, an optional date, whether you want to convert to or from CAD, " +
+                    "and an amount, and will give you the proper exhcnage rate. Enter 0 at any time to exit.\n");
 
             while (!quit)
             {
-                CurrencyConversionService converter = new CurrencyConversionService();
+                ICurrencyConversionService converter = new CurrencyConversionService();
 
                 List<string> codes = CurrencyCodes.BuildCodeList();
 
@@ -42,14 +43,52 @@ namespace CurrencyConversion
                     validCode = Validator.IsCurrencyCodeValid(inputedCurrency);
                 }
 
-                // get the optional date from the user
-                DateTime date;
+                // get the amount the user wants converted
+                var validAmount = false;
+                decimal amount = 0;
+                while (!validAmount)
+                {
+                    Console.WriteLine("Amount to convert:");
+                    var stringAmount = Console.ReadLine();
+
+                    if (stringAmount == "0")
+                    {
+                        ExitProgram();
+                    }
+
+                    if (decimal.TryParse(stringAmount.Trim(), out amount))
+                    {
+                        if (Validator.IsAmountValid(amount))
+                        {
+                            validAmount = true;
+                        }
+                    }
+                }               
+
+                // determine whether user wants conversion to or from CAD
+                bool validSelection = false;
+                string toFromCad = "";
+
+                while (!validSelection)
+                {
+                    Console.WriteLine("Input FROM to convert from CAD to {0}, or TO to convert " +
+                        "from {0} to CAD:", inputedCurrency);
+
+                    toFromCad = Console.ReadLine();
+
+                    if(Validator.IsToFromInputValid(toFromCad))
+                    {
+                        validSelection = true;  
+                    }                   
+                }
+
+                // get the optional date from the user                
+                DateTime? dateToUse = null;
                 bool dateValid = false;
-                string convertedDate = "";
 
                 while (!dateValid)
                 {
-                    Console.WriteLine("Please enter a date in this format (yyyy-mm-dd), or just hit enter to use the most recent results:");
+                    Console.WriteLine("Please enter a date in this format (yyyy-mm-dd), or enter for most recent rate available:");
 
                     var inputDate = Console.ReadLine();
 
@@ -63,46 +102,28 @@ namespace CurrencyConversion
                         dateValid = true;
                     }
 
-                    if(DateTime.TryParse(inputDate.Trim(), out date))
+                    DateTime date;
+
+                    if (DateTime.TryParse(inputDate.Trim(), out date))
                     {
-                        if(Validator.IsDateValid(date))
+                        dateToUse = date;
+
+                        if (Validator.IsDateValid(date))
                         {
-                            convertedDate = date.ToString("yyyy'-'MM'-'dd");
                             dateValid = true;
-                        }                        
+                        }
                     }
                 }
 
-                // determine whether user wants conversion to or from CAD
-                bool validSelection = false;
-                string toFromCad = "";
-
-                while (!validSelection)
+                Currency currency = await converter.GetBOCRateAsync(inputedCurrency, toFromCad, dateToUse);
+                
+                if(currency.Description != null)
                 {
-                    Console.WriteLine("Input FROM if you would like the conversion from CAD to {0}, or TO if you would like the conversion to be " +
-                        "from {0} to CAD:", inputedCurrency);
-                    toFromCad = Console.ReadLine().ToLower();
-                    if (toFromCad == "from" || toFromCad.ToLower() == "to")
-                    {
-                        validSelection = true;
-                    }
+                    var response = converter.BuildReponse(currency, amount, toFromCad, inputedCurrency);
+
+                    Console.WriteLine(response + "\n");
                 }
-
-                Currency currency;
-
-                if(!String.IsNullOrEmpty(convertedDate))
-                {
-                    currency = await converter.GetBOCRate(inputedCurrency, toFromCad, convertedDate);
-                }
-                else
-                {
-                    currency = await converter.GetBOCRate(inputedCurrency, toFromCad);
-                }
-                            
-                var response = await converter.BuildReponse(currency);
-
-                Console.WriteLine(response + "\n");
-
+                                
                 Console.WriteLine("\nIf you would like to do another conversion, type yes");
                 string again = Console.ReadLine().ToLower();
 

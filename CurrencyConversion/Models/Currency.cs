@@ -9,7 +9,7 @@ namespace CurrencyConversion.Models
     public class Currency
     {      
         public string Date { get; set; }
-        public string Rate { get; set; }
+        public decimal Rate { get; set; }
         public string Description { get; set; }
-    }
+    }   
 }
